@@ -3,11 +3,9 @@
 """
 from binascii import hexlify, unhexlify
 from base64 import b64encode, b64decode
-from utils import bitwise_xor, parse_txt_file, NotSingleCharXORException, estimate_vigenere_key_length
+from utils import bitwise_xor, parse_txt_file, NotSingleCharXORException, estimate_vigenere_key_length, ECB
 from struct import unpack
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
-backend = default_backend()
+from collections import defaultdict
 
 
 # challenge 1
@@ -60,7 +58,7 @@ def detect_one_char_multiple_pads(ctxt_file):
     # didn't.
     for ctxt in CTXTS:
         try:
-            detected.append(crack_one_char_multiple_pads(ctxt))
+            detected.append(crack_one_char_multiple_pads(unhexlify(ctxt)))
         except NotSingleCharXORException:
             pass
     if len(detected) > 1 or len(detected) == 0:
@@ -93,29 +91,23 @@ def crack_vigenere(ctxt):
     return {'ptxt': ptxt.decode(), 'key': key}
 
 
-# challenge 7
-def decrypt_aes128_ecb(ctxt, key):
-    cipher = Cipher(algorithms.AES(key), modes.ECB(), backend=backend)
-    decryptor = cipher.decryptor()
-    ptxt = decryptor.update(ctxt) + decryptor. finalize()
-    return ptxt
+# challenge 7 (code moved to utils)
+# key = b'YELLOW SUBMARINE'
+# ecb = ECB()
+# print(ecb.decrypt_aes128(b64decode(open('data/1_7.txt').read()), key).decode())
 
 
 # challenge 8
-def detect_ecb(ctxt, block_length=16):
-    """returns true/false depending on if the ciphertext has been encoded with blocks"""
+#
+def repeating_blocks(ctxt, block_length=16):
+    """returns sum of repetitions"""
     # Idea 1: issue with ECB: repeating blocks. So, if block is repeated, here we say that it's encrypted w/ ECB mode
     # Idea 2: same issue obviously, but the ctxt with minimum hamming distance would be the one encrypted w/ ECB mode
     # Idea 1 is implemented
-    blocks = set()
+    repetition_count = defaultdict(lambda: -1)  # could also been done with len(set(list)) == len(list) but I want a count
     for i in range(0, len(ctxt), block_length):
-        block = ctxt[i:i+block_length]
-        if block in blocks:
-            return True
-        blocks.add(block)
-    return False
-
-
+        repetition_count[bytes(ctxt[i:i+block_length])] += 1
+    return sum(repetition_count.values())
 
 
 """
@@ -150,14 +142,20 @@ assert repeating_multiple_time_pad(ptxt, key) == answer
 # challenge 6 test:
 print(crack_vigenere(b64decode(open('data/1_6.txt').read())))
 
-# challenge 7 test:
-key = b'YELLOW SUBMARINE'
-print(decrypt_aes128_ecb(b64decode(open('data/1_7.txt').read()), key).decode())
+# challenge 7 test: (*OUTDATED*)
+# key = b'YELLOW SUBMARINE'
+# print(ECB.decrypt_aes128_ecb(b64decode(open('data/1_7.txt').read()), key).decode())
 
 # challenge 8 test:
 CTXTS = parse_txt_file(open('data/1_8.txt'))
-res = [detect_ecb(ctxt) for ctxt in CTXTS]
-if True in res:
-    print(res.index(True)+1)
+max_count = 0
+for ctxt in CTXTS:
+    if repeating_blocks(unhexlify(ctxt)) > max_count:
+        print(ctxt)
 """
+
+
+
+
+
 

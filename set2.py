@@ -209,9 +209,8 @@ class Hard_ECB_Cracker:
 # challenge 15
 # unpad_valid_PKCSN7 moved to utils to avoid circular imports
 
-
 # challenge 16
-# idea: have (some_char || admin) and use xor to change the char to =
+# could have made a class as I usually did, but the oracle is a method this time
 def cbc_encryption_oracle(data, key, iv):
     cbc = CBC()
     tmp = parse.quote_from_bytes(data).encode()
@@ -226,7 +225,7 @@ def is_admin(ctxt, key):
     return b';admin=true;' in ptxt
 
 
-def crack(oracle, block_length, key, iv):
+def crack_cbc_oracle(oracle, block_length, key, iv):
     prefix = b'X' * block_length * 2
     ctxt_data = oracle(prefix, key, iv)
     ctxt = ctxt_data['ctxt']
@@ -293,5 +292,5 @@ KEY = urandom(AES.block_size)
 IV = urandom(AES.block_size)
 # ctxt = cbc_encryption_oracle(b'', KEY, IV)
 # print(is_admin(ctxt, KEY))
-crack(cbc_encryption_oracle, AES.block_size, KEY, IV)
+crack_cbc_oracle(cbc_encryption_oracle, AES.block_size, KEY, IV)
 """

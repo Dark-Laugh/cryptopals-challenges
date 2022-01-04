@@ -94,7 +94,7 @@ def crack_vigenere(ctxt):
 # challenge 7 (code moved to utils)
 # key = b'YELLOW SUBMARINE'
 # ecb = ECB()
-# print(ecb.decrypt_aes128(b64decode(open('data/1_7.txt').read()), key).decode())
+# print(ecb.decrypt_aes128(b64decode(open('data/7.txt').read()), key).decode())
 
 
 # challenge 8
@@ -125,7 +125,7 @@ assert xor_hex('1c0111001f010100061a024b53535009181c', '686974207468652062756c6c
 print(crack_one_char_multiple_pads(unhexlify('1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736')))
 
 # challenge 4 test: 
-with open('data/1_4.txt') as data:
+with open('data/4.txt') as data:
     print(detect_one_char_multiple_pads(data))
 
 
@@ -140,14 +140,14 @@ answer = unhexlify(
 assert repeating_multiple_time_pad(ptxt, key) == answer
 
 # challenge 6 test:
-print(crack_vigenere(b64decode(open('data/1_6.txt').read())))
+print(crack_vigenere(b64decode(open('data/6.txt').read())))
 
 # challenge 7 test: (*OUTDATED*)
 # key = b'YELLOW SUBMARINE'
-# print(ECB.decrypt_aes128_ecb(b64decode(open('data/1_7.txt').read()), key).decode())
+# print(ECB.decrypt_aes128_ecb(b64decode(open('data/7.txt').read()), key).decode())
 
 # challenge 8 test:
-CTXTS = parse_txt_file(open('data/1_8.txt'))
+CTXTS = parse_txt_file(open('data/8.txt'))
 max_count = 0
 for ctxt in CTXTS:
     if repeating_blocks(unhexlify(ctxt)) > max_count:

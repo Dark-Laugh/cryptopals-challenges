@@ -1,6 +1,7 @@
 """
 @author rpthi
 """
+
 from bitstring import BitArray
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
@@ -8,13 +9,18 @@ from math import ceil
 from base64 import b64decode
 from os import urandom
 from random import randint
-from urllib import parse
+from itertools import zip_longest
 
 
-def bitwise_xor(A, B):
+def bitwise_xor(A, B, longest=True):
+    # longest is modification for set3 challenge 18 (and beyond)
+    # necessary since generator is infinite, so take the string length corresponding to non-generator parameter length
     """returns bitwise XOR of 2 bytestrings, denoted 'A' and 'B'"""
     # note: python built in '^' only works with integers
-    return bytes([a ^ b for (a, b) in zip(A, B)])
+    if longest:
+        return bytes([a ^ b for (a, b) in zip_longest(A, B, fillvalue=0)])
+    else:
+        return bytes([a ^ b for (a, b) in zip(A, B)])
 
 
 def parse_txt_file(ctxt_file):
@@ -73,12 +79,12 @@ class ECB:
         self.backend = default_backend()
         self.block_length = 16
 
-    def encrypt_aes128_unpadded(self, msg, key):
+    def encrypt_aes128_block(self, msg, key):
         cipher = Cipher(algorithms.AES(key), modes.ECB(), backend=self.backend)
         encryptor = cipher.encryptor()
         return encryptor.update(msg) + encryptor.finalize()
 
-    def decrypt_aes128_unpadded(self, ctxt, key):
+    def decrypt_aes128_block(self, ctxt, key):
         cipher = Cipher(algorithms.AES(key), modes.ECB(), backend=self.backend)
         decryptor = cipher.decryptor()
         ptxt = decryptor.update(ctxt) + decryptor. finalize()
@@ -110,7 +116,7 @@ class CBC:
         prev_ctxt = iv
         for block in blocks:
             tmp = bitwise_xor(block, prev_ctxt)
-            new_ctxt = self.ecb.encrypt_aes128_unpadded(tmp, key)
+            new_ctxt = self.ecb.encrypt_aes128_block(tmp, key)
             ctxt += new_ctxt
             prev_ctxt = new_ctxt
         return ctxt
@@ -120,7 +126,7 @@ class CBC:
         ptxt = b''
         prev_ctxt = iv
         for block in blocks:
-            tmp = self.ecb.decrypt_aes128_unpadded(block, key)
+            tmp = self.ecb.decrypt_aes128_block(block, key)
             ptxt += bitwise_xor(tmp, prev_ctxt)
             prev_ctxt = block
         return unpad_PKCSN7(ptxt)
@@ -130,10 +136,20 @@ class CBC:
         ptxt = b''
         prev_ctxt = iv
         for block in blocks:
-            tmp = self.ecb.decrypt_aes128_unpadded(block, key)
+            tmp = self.ecb.decrypt_aes128_block(block, key)
             ptxt += bitwise_xor(tmp, prev_ctxt)
             prev_ctxt = block
         return unpad_valid_PKCSN7(ptxt, self.block_length)
+
+    def decrypt_aes128_keep_PCSN7(self, ctxt, key, iv):
+        blocks = slice_to_blocks(ctxt, self.block_length)
+        ptxt = b''
+        prev_ctxt = iv
+        for block in blocks:
+            tmp = self.ecb.decrypt_aes128_block(block, key)
+            ptxt += bitwise_xor(tmp, prev_ctxt)
+            prev_ctxt = block
+        return ptxt
 
 
 class Simple_ECB_Oracle:
@@ -176,6 +192,12 @@ def unpad_valid_PKCSN7(txt, block_length):
         raise PadError
     return txt[:-pad_length]
 
+
+# for the MT19937_32 class in set3 where upon further reflection it makes no sense to have it as a static method of said
+# class since it's a utility method applicable elsewhere
+def lowest_bits(bits, nb_bits):
+    mask = (1 << nb_bits) - 1
+    return bits & mask
 
 
 

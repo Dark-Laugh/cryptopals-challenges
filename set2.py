@@ -1,16 +1,12 @@
 """
 @author rpthi
 """
-from utils import ECB, CBC, Simple_ECB_Oracle, pad_PKCSN7, slice_to_blocks, Hard_ECB_Oracle, bitwise_xor
+from util.utils import ECB, CBC, pad_PKCSN7, bitwise_xor
 from random import randint, choice
 from os import urandom
 from set1 import repeating_blocks
 from struct import unpack
-from binascii import unhexlify
 from urllib import parse
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
-from Crypto.Cipher import AES
 
 
 # challenge 9
@@ -240,12 +236,15 @@ def crack_cbc_oracle(oracle, block_length, key, iv):
 
 
 """
-# challenge 9 test:
+# challenge 9 test
+:
 assert pad_PKCSN7(b'YELLOW SUBMARINE', 20) == b'YELLOW SUBMARINE\x04\x04\x04\x04'
 assert unpad_PKCSN7(b'YELLOW SUBMARINE\x04\x04\x04\x04') == b'YELLOW SUBMARINE'
 
 # challenge 10 test
-from utils import CBC
+
+from test
+ import CBC
 cbc = CBC()
 for _ in range(100):
     length = randint(5,50)
@@ -256,6 +255,7 @@ for _ in range(100):
     assert cbc.decrypt_aes128_simple(ctxt, key, iv) == msg
 
 # challenge 11 test
+
 for _ in range(100):
     mode = choice(['ECB', 'CBC'])
     message = b'X'*50
@@ -264,23 +264,27 @@ for _ in range(100):
     assert detected_mode == mode
 
 # challenge 12 test
+
 oracle = Simple_ECB_Oracle()
 cracker = Simple_ECB_Cracker(oracle)
 msg = cracker.crack_simple_ECB()
 print(msg.decode())
 
 # challenge 13 test
+
 cookie = Structured_Cookie()
 assert cookie.profile_for(b"email@example.com") ==b'email=email@example.com&uid=10&role=user'
 assert cookie.kv_parse(b'email=email@example.com&uid=10&role=user')=={'email': 'email@example.com', 'role': 'user', 'uid': '10'}
 assert privesc_struct_cookie(cookie)['role'] == 'admin'
 
 # challenge 14 test
+
 oracle = Hard_ECB_Oracle()
 cracker = Hard_ECB_Cracker(oracle)
 print(cracker.crack_hard_ECB().decode())
 
 # challenge 15 test
+
 assert unpad_valid_PKCSN7(b'ICE ICE BABY\x04\x04\x04\x04', 16) == b'ICE ICE BABY'
 try:
     print(unpad_valid_PKCSN7(b'ICE ICE BABY\x04\x04\x04\x00', 16))
@@ -288,6 +292,7 @@ except PadError:
     print('here')
 
 # challenge 16 test
+
 KEY = urandom(AES.block_size)
 IV = urandom(AES.block_size)
 # ctxt = cbc_encryption_oracle(b'', KEY, IV)

@@ -4,12 +4,11 @@
 from base64 import b64decode
 from os import urandom
 from Crypto.Cipher import AES
-from utils import (CBC, PadError, slice_to_blocks, unpad_PKCSN7, ECB, bitwise_xor, lowest_bits)
+from util.utils import (CBC, PadError, slice_to_blocks, unpad_PKCSN7, ECB, bitwise_xor, lowest_bits)
 from random import choice, randint
 from struct import unpack
 from set1 import crack_one_char_multiple_pads
 from time import time
-from Crypto.Random import random
 
 
 # challenge 17
@@ -284,7 +283,7 @@ def crack_MT19937_32_Stream_Cipher_key(ctxt, k_ptxt):  # k_ptxt denotes known pt
     raise Exception('Could not find seed')
 
 
-def encrypt_and_recover_key(k_ptxt):  # test method as per instructions
+def encrypt_and_recover_key(k_ptxt):  # method as per instructions
     key = randint(1, 2**16-1)
     stream_cipher = MT19937_32_Stream_Cipher(key)
     ctxt = stream_cipher.encrypt(urandom(randint(1,100)) + k_ptxt)  # prefix + ptxt

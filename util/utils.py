@@ -10,6 +10,8 @@ from base64 import b64decode
 from os import urandom
 from random import randint
 from itertools import zip_longest
+from struct import unpack, pack
+from binascii import hexlify
 
 
 def bitwise_xor(A, B, longest=True):
@@ -199,5 +201,150 @@ def lowest_bits(bits, nb_bits):
     mask = (1 << nb_bits) - 1
     return bits & mask
 
+
+def left_rotate(val, shift):
+    return ((val << shift) & 0xffffffff) | (val >> (32-shift))
+
+
+class SHA1:
+    def_h0, def_h1, def_h2, def_h3, def_h4, = (0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0)
+
+    def __init__(self, msg, ml=None, h0=def_h0, h1=def_h1, h2=def_h2, h3=def_h3, h4=def_h4):
+        self.h0 = h0
+        self.h1 = h1
+        self.h2 = h2
+        self.h3 = h3
+        self.h4 = h4
+
+        # pre- processing:
+        if ml is None:
+            ml = len(msg) * 8
+        msg += b'\x80'
+        while (len(msg) * 8) % 512 != 448:
+            msg += b'\x00'
+        msg += pack('>Q', ml)  # unsigned 64-bit int big-endian
+
+        # Process the message in successive 512-bit chunks:
+        for i in range(0, len(msg), 64):
+            self.process_chunk(i, msg)
+
+    def process_chunk(self, i, msg):
+        w = [0] * 80
+        for j in range(16):
+            w[j] = unpack('>I', msg[slice(i + 4 * j, i + 4 * j + 4)])[0]
+        # Message schedule: extend the sixteen 32-bit words into eighty 32-bit words:
+        for j in range(16, 80):
+            w[j] = left_rotate(w[j - 3] ^ w[j - 8] ^ w[j - 14] ^ w[j - 16], 1)
+        # Initialize hash value for this chunk:
+        a = self.h0
+        b = self.h1
+        c = self.h2
+        d = self.h3
+        e = self.h4
+        # Main loop:
+        for j in range(80):
+            if j <= 19:
+                f = d ^ (b & (c ^ d))
+                k = 0x5A827999
+            elif 20 <= j <= 39:
+                f = b ^ c ^ d
+                k = 0x6ED9EBA1
+            elif 40 <= j <= 59:
+                f = (b & c) | (d & (b | c))
+                k = 0x8F1BBCDC
+            else:
+                f = b ^ c ^ d
+                k = 0xCA62C1D6
+            tmp = left_rotate(a, 5) + f + e + k + w[j] & 0xffffffff
+            e = d
+            d = c
+            c = left_rotate(b, 30)
+            b = a
+            a = tmp
+
+        self.h0 = (self.h0 + a) & 0xffffffff
+        self.h1 = (self.h1 + b) & 0xffffffff
+        self.h2 = (self.h2 + c) & 0xffffffff
+        self.h3 = (self.h3 + d) & 0xffffffff
+        self.h4 = (self.h4 + e) & 0xffffffff
+
+    def get_vars(self):
+        return self.h0, self.h1, self.h2, self.h3, self.h4
+
+    def get_hash(self):
+        # Produce the final hash value (big-endian) as a 160 bit number, hex formatted:
+        return '%08x%08x%08x%08x%08x' % self.get_vars()
+
+
+class MD4:
+    buf = [0x00] * 64
+
+    _F = lambda self, x, y, z: ((x & y) | (~x & z))
+    _G = lambda self, x, y, z: ((x & y) | (x & z) | (y & z))
+    _H = lambda self, x, y, z: (x ^ y ^ z)
+
+    def __init__(self, message, ml=None, A=0x67452301, B=0x67452301, C=0x98badcfe, D=0x10325476):
+        self.A, self.B, self.C, self.D = (A, B, C, D)
+        if ml is None:
+            ml = len(message) * 8
+        length = pack('<Q', ml)
+        while len(message) > 64:
+            self._handle(message[:64])
+            message = message[64:]
+        message += b'\x80'
+        message += bytes((56 - len(message) % 64) % 64)
+        message += length
+        while len(message):
+            self._handle(message[:64])
+            message = message[64:]
+
+    def _handle(self, chunk):
+        X = list(unpack('<' + 'I' * 16, chunk))
+        A, B, C, D = self.A, self.B, self.C, self.D
+
+        for i in range(16):
+            k = i
+            if i % 4 == 0:
+                A = left_rotate((A + self._F(B, C, D) + X[k]) & 0xffffffff, 3)
+            elif i % 4 == 1:
+                D = left_rotate((D + self._F(A, B, C) + X[k]) & 0xffffffff, 7)
+            elif i % 4 == 2:
+                C = left_rotate((C + self._F(D, A, B) + X[k]) & 0xffffffff, 11)
+            elif i % 4 == 3:
+                B = left_rotate((B + self._F(C, D, A) + X[k]) & 0xffffffff, 19)
+
+        for i in range(16):
+            k = (i // 4) + (i % 4) * 4
+            if i % 4 == 0:
+                A = left_rotate((A + self._G(B, C, D) + X[k] + 0x5a827999) & 0xffffffff, 3)
+            elif i % 4 == 1:
+                D = left_rotate((D + self._G(A, B, C) + X[k] + 0x5a827999) & 0xffffffff, 5)
+            elif i % 4 == 2:
+                C = left_rotate((C + self._G(D, A, B) + X[k] + 0x5a827999) & 0xffffffff, 9)
+            elif i % 4 == 3:
+                B = left_rotate((B + self._G(C, D, A) + X[k] + 0x5a827999) & 0xffffffff, 13)
+
+        order = [0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15]
+        for i in range(16):
+            k = order[i]
+            if i % 4 == 0:
+                A = left_rotate((A + self._H(B, C, D) + X[k] + 0x6ed9eba1) & 0xffffffff, 3)
+            elif i % 4 == 1:
+                D = left_rotate((D + self._H(A, B, C) + X[k] + 0x6ed9eba1) & 0xffffffff, 9)
+            elif i % 4 == 2:
+                C = left_rotate((C + self._H(D, A, B) + X[k] + 0x6ed9eba1) & 0xffffffff, 11)
+            elif i % 4 == 3:
+                B = left_rotate((B + self._H(C, D, A) + X[k] + 0x6ed9eba1) & 0xffffffff, 15)
+
+        self.A = (self.A + A) & 0xffffffff
+        self.B = (self.B + B) & 0xffffffff
+        self.C = (self.C + C) & 0xffffffff
+        self.D = (self.D + D) & 0xffffffff
+
+    def digest(self):
+        return pack('<IIII', self.A, self.B, self.C, self.D)
+
+    def hexdigest(self):
+        return hexlify(self.digest()).decode()
 
 

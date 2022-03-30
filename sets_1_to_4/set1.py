@@ -3,7 +3,7 @@
 """
 from binascii import hexlify, unhexlify
 from base64 import b64encode, b64decode
-from util.utils import bitwise_xor, parse_txt_file, NotSingleCharXORException, estimate_vigenere_key_length, ECB
+from util import bitwise_xor, parse_txt_file, NotSingleCharXORException, estimate_vigenere_key_length, ECB
 from struct import unpack
 from collections import defaultdict
 

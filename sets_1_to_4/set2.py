@@ -1,7 +1,7 @@
 """
 @author rpthi
 """
-from util.utils import ECB, CBC, pad_PKCSN7, bitwise_xor
+from util import ECB, CBC, pad_PKCSN7, bitwise_xor
 from random import randint, choice
 from os import urandom
 from set1 import repeating_blocks

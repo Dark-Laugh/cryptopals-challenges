@@ -3,16 +3,16 @@
 """
 import time
 from os import urandom
-from urllib import parse, request
+from urllib import parse
 from requests import get, post
 from Crypto.Cipher import AES
 from set2 import cbc_encryption_oracle
 from set3 import aes128_ctr
-from util.utils import ECB, bitwise_xor, CBC, SHA1, MD4
+from util import ECB, bitwise_xor, CBC, SHA1, MD4
 from struct import pack, unpack
 from random import randint
-from binascii import unhexlify, hexlify
-from servers.CH31_server import HMAC_SHA1, validate_signature
+from binascii import unhexlify
+from sets_1_to_4.CH31_server import HMAC_SHA1, validate_signature
 
 # from hashlib import sha1  # just to test implementation
 # from base64 import b64decode

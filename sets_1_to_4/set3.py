@@ -4,7 +4,7 @@
 from base64 import b64decode
 from os import urandom
 from Crypto.Cipher import AES
-from util.utils import (CBC, PadError, slice_to_blocks, unpad_PKCSN7, ECB, bitwise_xor, lowest_bits)
+from util import (CBC, PadError, slice_to_blocks, unpad_PKCSN7, ECB, bitwise_xor, lowest_bits)
 from random import choice, randint
 from struct import unpack
 from set1 import crack_one_char_multiple_pads
